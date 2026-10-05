@@ -1,0 +1,16 @@
+services:
+  producer:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: gtfsrt-nomad3d
+    environment:
+      - TZ=Europe/Paris
+    env_file:
+      - path: ./.env
+        required: false
+    ports:
+      - "127.0.0.1:50022:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

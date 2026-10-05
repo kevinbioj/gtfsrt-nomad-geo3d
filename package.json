@@ -1,0 +1,33 @@
+{
+	"name": "@bus-tracker/gtfsrt-nomad3d",
+	"description": "GTFS-RT data producer for NOMAD Car - Geo3D lines (Normandie, France)",
+	"version": "0.1.0",
+	"author": "Kevin BIOJOUT <biojoutk1106@gmail.com>",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"type": "module",
+	"scripts": {
+		"dev": "tsx --env-file .env src/index.ts",
+		"build": "tsc",
+		"start": "node dist/index.js",
+		"check": "biome check",
+		"check:fix": "biome check --fix"
+	},
+	"packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621",
+	"devDependencies": {
+		"@biomejs/biome": "2.5.8",
+		"@types/decompress": "^4.2.7",
+		"@types/node": "^26.2.0",
+		"@types/papaparse": "^5.5.2",
+		"tsx": "^4.23.12",
+		"typescript": "^7.0.2"
+	},
+	"dependencies": {
+		"@hono/node-server": "^2.1.1",
+		"decompress": "^4.2.1",
+		"gtfs-realtime-bindings": "^2.2.0",
+		"hono": "^4.13.2",
+		"hono-rate-limiter": "^0.5.3",
+		"papaparse": "^5.6.0"
+	}
+}
