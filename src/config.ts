@@ -21,3 +21,12 @@ export const MAX_TIME_DEVIATION = envNumber("MAX_TIME_DEVIATION", 600);
 
 /** Fichier de persistance des appariements de courses, pour survivre aux redémarrages. */
 export const TRIP_CACHE_PATH = process.env.TRIP_CACHE_PATH ?? "data/trip-cache.json";
+
+/** Distance restante jusqu'au prochain arrêt, en mètres, en dessous de laquelle on considère le véhicule à quai. */
+export const STOPPED_AT_RADIUS = envNumber("STOPPED_AT_RADIUS", 30);
+/** Idem pour l'approche de l'arrêt. */
+export const INCOMING_AT_RADIUS = envNumber("INCOMING_AT_RADIUS", 1500);
+/** Recul autorisé, en mètres, lors de la reprise de la projection d'un véhicule déjà localisé. */
+export const BACKWARD_TOLERANCE = envNumber("BACKWARD_TOLERANCE", 150);
+/** Écart maximal, en mètres, entre un véhicule et le tracé de sa course au-delà duquel on renonce à le situer. */
+export const MAX_SHAPE_OFFSET = envNumber("MAX_SHAPE_OFFSET", 150);

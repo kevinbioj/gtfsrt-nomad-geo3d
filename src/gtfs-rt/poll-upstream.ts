@@ -6,6 +6,7 @@ import type { GtfsResourceHolder } from "../gtfs/load-resource.js";
 import { type Call, findStopIndex } from "../matching/align-calls.js";
 import { formatStartDate, matchRunningTrip, matchTimedTrip, type TripMatch } from "../matching/match-trip.js";
 import { useTripCache } from "../matching/trip-cache.js";
+import { useVehicleLocator } from "./locate-vehicle.js";
 
 export type RealtimeStore = ReturnType<typeof useUpstreamFeeds>;
 
@@ -55,6 +56,7 @@ export function useUpstreamFeeds(gtfsResource: GtfsResourceHolder) {
 	};
 
 	const tripCache = useTripCache(TRIP_CACHE_PATH);
+	const { locateVehicle, sweepVehicleStates } = useVehicleLocator();
 
 	/**
 	 * Appariements du dernier cycle, indexés par identifiant de course Hanover, réutilisés par les positions.
@@ -163,6 +165,11 @@ export function useUpstreamFeeds(gtfsResource: GtfsResourceHolder) {
 			if (vehicle.trip && rtRouteId && match !== undefined) {
 				rewriteTrip(vehicle.trip, match);
 
+				// Le tracé de la course classique situe le véhicule plus finement que l'arrêt annoncé par Geo3D,
+				// qui ne sert plus que de repli lorsque la projection est impossible.
+				const tripKey = `${match.trip.id}:${formatStartDate(match.startDate)}`;
+				if (locateVehicle(vehicle, match.trip, tripKey, gtfs)) continue;
+
 				const stopIndex = vehicle.stopId ? findStopIndex(match.trip, rtRouteId, vehicle.stopId) : undefined;
 				const stop = stopIndex !== undefined ? match.trip.stops[stopIndex] : undefined;
 				if (stop !== undefined) {
@@ -189,6 +196,8 @@ export function useUpstreamFeeds(gtfsResource: GtfsResourceHolder) {
 			delete vehicle.currentStopSequence;
 			delete vehicle.currentStatus;
 		}
+
+		sweepVehicleStates();
 
 		store.vehiclePositions = feed.entity;
 		store.vehiclePositionsTimestamp = Number(feed.header.timestamp ?? 0);

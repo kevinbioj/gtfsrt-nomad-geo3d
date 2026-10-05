@@ -2,6 +2,8 @@ import { join } from "node:path";
 
 import { parseCsv } from "../utils/parse-csv.js";
 
+export type ShapePoint = { latitude: number; longitude: number; distance: number };
+
 export type TripStop = {
 	sequence: number;
 	stopId: string;
@@ -10,6 +12,8 @@ export type TripStop = {
 	/** Secondes depuis « midi moins 12 h » du jour de service (peut dépasser 24 h). */
 	arrival: number;
 	departure: number;
+	/** Abscisse curviligne de l'arrêt le long du tracé de la course, en mètres. */
+	distance: number;
 };
 
 export type Trip = {
@@ -17,6 +21,7 @@ export type Trip = {
 	routeId: string;
 	serviceId: string;
 	directionId: number | undefined;
+	shapeId: string | undefined;
 	stops: TripStop[];
 };
 
@@ -25,6 +30,7 @@ export type GtfsResource = Awaited<ReturnType<typeof importResource>>;
 export async function importResource(directory: string) {
 	const routesByShortName = await importRoutes(directory);
 	const isServiceActive = await importServices(directory);
+	const shapes = await importShapes(directory);
 	const trips = await importTrips(directory);
 
 	const tripsByRoute = new Map<string, Trip[]>();
@@ -37,7 +43,7 @@ export async function importResource(directory: string) {
 		routeTrips.push(trip);
 	});
 
-	return { routesByShortName, isServiceActive, trips, tripsByRoute };
+	return { routesByShortName, isServiceActive, shapes, trips, tripsByRoute };
 }
 
 type RouteRecord = { route_id: string; route_short_name: string };
@@ -109,9 +115,48 @@ async function importServices(directory: string) {
 	};
 }
 
+type ShapeRecord = {
+	shape_id: string;
+	shape_pt_lat: string;
+	shape_pt_lon: string;
+	shape_pt_sequence: string;
+	shape_dist_traveled: string;
+};
+
+async function importShapes(directory: string) {
+	const shapes = new Map<string, (ShapePoint & { sequence: number })[]>();
+
+	await parseCsv<ShapeRecord>(join(directory, "shapes.txt"), (shapeRecord) => {
+		let points = shapes.get(shapeRecord.shape_id);
+		if (points === undefined) {
+			points = [];
+			shapes.set(shapeRecord.shape_id, points);
+		}
+
+		points.push({
+			latitude: +shapeRecord.shape_pt_lat,
+			longitude: +shapeRecord.shape_pt_lon,
+			distance: +shapeRecord.shape_dist_traveled,
+			sequence: +shapeRecord.shape_pt_sequence,
+		});
+	});
+
+	shapes.forEach((points) => {
+		points.sort((a, b) => a.sequence - b.sequence);
+	});
+
+	return shapes as Map<string, ShapePoint[]>;
+}
+
 type StopRecord = { stop_id: string; stop_lat: string; stop_lon: string };
 
-type TripRecord = { trip_id: string; route_id: string; service_id: string; direction_id?: string };
+type TripRecord = {
+	trip_id: string;
+	route_id: string;
+	service_id: string;
+	direction_id?: string;
+	shape_id?: string;
+};
 
 type StopTimeRecord = {
 	trip_id: string;
@@ -119,6 +164,7 @@ type StopTimeRecord = {
 	stop_sequence: string;
 	arrival_time: string;
 	departure_time: string;
+	shape_dist_traveled?: string;
 };
 
 function parseTime(time: string) {
@@ -140,6 +186,7 @@ async function importTrips(directory: string) {
 			routeId: tripRecord.route_id,
 			serviceId: tripRecord.service_id,
 			directionId: tripRecord.direction_id ? +tripRecord.direction_id : undefined,
+			shapeId: tripRecord.shape_id || undefined,
 			stops: [],
 		});
 	});
@@ -158,6 +205,7 @@ async function importTrips(directory: string) {
 			longitude: stop.longitude,
 			arrival: parseTime(stopTimeRecord.arrival_time || stopTimeRecord.departure_time),
 			departure: parseTime(stopTimeRecord.departure_time || stopTimeRecord.arrival_time),
+			distance: stopTimeRecord.shape_dist_traveled ? +stopTimeRecord.shape_dist_traveled : Number.NaN,
 		});
 	});
 

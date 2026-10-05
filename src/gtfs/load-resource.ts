@@ -67,7 +67,7 @@ async function loadResource(resourceUrl: string) {
 	try {
 		const { lastModified } = await downloadResource(resourceUrl, workingDirectory);
 		const resource = await importResource(workingDirectory);
-		console.log(`✓ Successfully loaded resource! (${resource.trips.size} trips)`);
+		console.log(`✓ Successfully loaded resource! (${resource.trips.size} trips, ${resource.shapes.size} shapes)`);
 		return { resource, lastModified };
 	} catch (cause) {
 		throw new Error("Failed to load GTFS resource", { cause });
